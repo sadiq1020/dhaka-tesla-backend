@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import { env } from './config/env.js';
 import { logger } from './common/logger.js';
+import { getZoneList } from './config/zones.js';
 
 export const createApp = (): Express => {
   const app = express();
@@ -26,6 +27,16 @@ export const createApp = (): Express => {
       service: 'dhaka-tesla-backend',
       timestamp: new Date().toISOString(),
     });
+  });
+
+  /**
+   * GET /api/zones
+   * Returns all predefined Dhaka pickup/destination zones.
+   * The frontend MUST use this endpoint to populate dropdowns —
+   * never hardcode zone names in the UI.
+   */
+  app.get('/api/zones', (_req: Request, res: Response) => {
+    res.status(200).json({ success: true, data: getZoneList() });
   });
 
   return app;
