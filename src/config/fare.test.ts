@@ -1,29 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import {
-  calculateZoneDistanceKm,
-  calculatePassengerFare,
-} from './fare.js';
-import { areRoutesCompatible } from './zones.js';
+import { calculateZoneDistanceKm, calculatePassengerFare } from './fare.js';
 
-describe('Zones and Corridor Matching', () => {
-  it('should match Nusrat and Rafiq on shared Banani corridor', () => {
-    // Nusrat: Banani -> Mohakhali
-    // Rafiq: Banani -> Gulshan 1
-    const compatible = areRoutesCompatible('banani', 'mohakhali', 'gulshan-1');
-    expect(compatible).toBe(true);
-  });
-
-  it('should reject incompatible routes with no shared corridor', () => {
-    // Banani -> Rampura and Banani -> Uttara
-    const compatible = areRoutesCompatible('banani', 'rampura', 'uttara');
-    expect(compatible).toBe(false);
-  });
-
-  it('should allow two passengers going to the exact same destination', () => {
-    const compatible = areRoutesCompatible('banani', 'mohakhali', 'mohakhali');
-    expect(compatible).toBe(true);
-  });
-});
+// NOTE: Corridor matching tests are in src/modules/pools/pool.matching.test.ts
 
 describe('Fare Calculation Module', () => {
   it('calculates the exact distance from Banani to Mohakhali as 2.3 km', () => {
