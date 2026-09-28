@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -10,4 +5,172 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+enum Role {
+  PASSENGER
+  DRIVER
+}
+
+enum RideStatus {
+  REQUESTED
+  MATCHED
+  DRIVER_ARRIVED
+  STARTED
+  COMPLETED
+  CANCELLED
+  EXPIRED
+}
+
+enum PoolStatus {
+  OPEN
+  DRIVER_ARRIVED
+  STARTED
+  COMPLETED
+  CANCELLED
+}
+
+// ---------- Better Auth tables ----------
+model User {
+  id            String   @id
+  name          String
+  email         String   @unique
+  emailVerified Boolean  @default(false)
+  image         String?
+  role          Role     @default(PASSENGER)
+  phone         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  sessions     Session[]
+  accounts     Account[]
+  tesla        Tesla?
+  rideRequests RideRequest[]
+  rideEvents   RideEvent[]
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+// ---------- Domain tables ----------
+model Tesla {
+  id          String   @id @default(uuid())
+  name        String                       // e.g., "Bullet"
+  plateNumber String   @unique
+  capacity    Int                          // passenger seats, driver NOT counted
+  isOnline    Boolean  @default(false)
+  driverId    String   @unique             // one driver owns one Tesla (MVP)
+  driver      User     @relation(fields: [driverId], references: [id])
+  pools       Pool[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Pool {
+  id          String       @id @default(uuid())
+  teslaId     String
+  tesla       Tesla        @relation(fields: [teslaId], references: [id])
+  status      PoolStatus   @default(OPEN)
+  pickupZone  String                       // zone slug from config
+  capacity    Int                          // copied from Tesla at creation
+  seatsTaken  Int          @default(0)
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  members     PoolMember[]
+  events      RideEvent[]
+
+  @@index([status, pickupZone])
+  @@index([teslaId])
+}
+
+model RideRequest {
+  id                 String      @id @default(uuid())
+  passengerId        String
+  passenger          User        @relation(fields: [passengerId], references: [id])
+  pickupZone         String
+  destinationZone    String
+  seats              Int         @default(1)
+  status             RideStatus  @default(REQUESTED)
+  estimatedFarePaisa Int                   // solo fare shown at request time
+  cancelledAt        DateTime?
+  cancelReason       String?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+  membership         PoolMember?
+  events             RideEvent[]
+
+  @@index([status, pickupZone, createdAt])
+  @@index([passengerId, createdAt])
+}
+
+model PoolMember {
+  id            String      @id @default(uuid())
+  poolId        String
+  pool          Pool        @relation(fields: [poolId], references: [id])
+  rideRequestId String      @unique
+  rideRequest   RideRequest @relation(fields: [rideRequestId], references: [id])
+  seats         Int
+  farePaisa     Int                        // current fare, locked at trip start
+  dropoffOrder  Int?
+  joinedAt      DateTime    @default(now())
+  leftAt        DateTime?                  // set if passenger cancels
+
+  @@index([poolId])
+}
+
+model RideEvent {
+  id            String       @id @default(uuid())
+  rideRequestId String
+  rideRequest   RideRequest  @relation(fields: [rideRequestId], references: [id])
+  poolId        String?
+  pool          Pool?        @relation(fields: [poolId], references: [id])
+  fromStatus    RideStatus?
+  toStatus      RideStatus
+  actorId       String?
+  actor         User?        @relation(fields: [actorId], references: [id])
+  note          String?
+  createdAt     DateTime     @default(now())
+
+  @@index([rideRequestId, createdAt])
 }
