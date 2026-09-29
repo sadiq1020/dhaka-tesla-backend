@@ -5,6 +5,9 @@ import { env } from './config/env.js';
 import { logger } from './common/logger.js';
 import { getZoneList } from './config/zones.js';
 
+import { authRoutes } from './modules/auth/auth.routes.js';
+import { errorHandler, notFoundHandler } from './common/error-handler.js';
+
 export const createApp = (): Express => {
   const app = express();
 
@@ -38,6 +41,13 @@ export const createApp = (): Express => {
   app.get('/api/zones', (_req: Request, res: Response) => {
     res.status(200).json({ success: true, data: getZoneList() });
   });
+
+  // Module routes
+  app.use('/api/auth', authRoutes);
+
+  // 404 & Global error handlers
+  app.use(notFoundHandler);
+  app.use(errorHandler);
 
   return app;
 };
