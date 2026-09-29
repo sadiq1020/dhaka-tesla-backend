@@ -6,6 +6,8 @@ import { logger } from './common/logger.js';
 import { getZoneList } from './config/zones.js';
 
 import { authRoutes } from './modules/auth/auth.routes.js';
+import { teslaRoutes } from './modules/tesla/tesla.routes.js';
+import { userRoutes } from './modules/users/user.routes.js';
 import { errorHandler, notFoundHandler } from './common/error-handler.js';
 
 export const createApp = (): Express => {
@@ -44,6 +46,8 @@ export const createApp = (): Express => {
 
   // Module routes
   app.use('/api/auth', authRoutes);
+  app.use('/api/teslas', teslaRoutes);
+  app.use('/api/users', userRoutes);
 
   // 404 & Global error handlers
   app.use(notFoundHandler);
